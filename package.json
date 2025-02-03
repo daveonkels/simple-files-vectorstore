@@ -1,0 +1,22 @@
+{
+  "name": "simple-files-vectorstore",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && chmod +x build/index.js",
+    "start": "node build/index.js"
+  },
+  "dependencies": {
+    "@langchain/community": "^0.3.28",
+    "@langchain/core": "^0.3.37",
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "@xenova/transformers": "^2.14.0",
+    "cheerio": "^1.0.0",
+    "faiss-node": "^0.5.1",
+    "html-to-text": "^9.0.5"
+  },
+  "devDependencies": {
+    "@types/html-to-text": "^9.0.4",
+    "typescript": "^5.3.3"
+  }
+}
