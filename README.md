@@ -2,6 +2,54 @@
 
 A generic solution for creating a vector store from local directories and files, enabling semantic search across their contents. This project is implemented as an MCP (Model Context Protocol) server that provides tools for initializing the store and performing searches.
 
+## Quick Start for Cline
+0. Have the path to your directories to watch and index ready, for example `/path/to/your/files`
+
+1. Cone the git repo:
+
+```bash
+git clone https://github.com/lishenxydlgzs/simple-files-vectorstore.git && cd simple-files-vectorstore
+```
+
+2. Build the server:
+```bash
+npm install && npm run build
+```
+
+3. Add the following to your Cline MCP settings file (`~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "files-vectorstore": {
+      "command": "node",
+      "args": ["/path/to/simple-files-vectorstore/build/index.js"],
+      "env": {
+        "WATCH_DIRECTORIES": "/path/to/your/files"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+
+Once configured, Cline will have access to two new tools:
+
+```typescript
+// Search your files
+use_mcp_tool('files-vectorstore', 'search', {
+  query: "What's the architecture of our system?",
+  limit: 5
+});
+
+// Get indexing statistics
+use_mcp_tool('files-vectorstore', 'get_stats', {});
+```
+
+The server will automatically index supported files in your watched directories and keep the index updated as files change.
+
 ## Supported File Types
 
 - Markdown (.md)
@@ -16,18 +64,6 @@ A generic solution for creating a vector store from local directories and files,
 - Store embeddings in a FAISS vector store for efficient similarity search
 - Configurable text chunking parameters
 - Track statistics about indexed files
-
-## Installation
-
-1. Clone the repository
-2. Install dependencies:
-```bash
-npm install
-```
-3. Build the project:
-```bash
-npm run build
-```
 
 ## Environment Variables
 
@@ -62,28 +98,6 @@ Get statistics about indexed files.
   name: 'get_stats',
   arguments: {}              // No arguments required
 }
-```
-
-## Example Usage
-
-1. Set environment variables:
-```bash
-export WATCH_DIRECTORIES="/path/to/docs,/path/to/other/files"
-export CHUNK_SIZE=1500
-export CHUNK_OVERLAP=150
-```
-
-2. Search across files:
-```typescript
-const results = await mcp.use_tool('simple-files-vectorstore', 'search', {
-  query: 'How to implement authentication?',
-  limit: 10
-});
-```
-
-3. Get statistics:
-```typescript
-const stats = await mcp.use_tool('simple-files-vectorstore', 'get_stats', {});
 ```
 
 ## File Processing
