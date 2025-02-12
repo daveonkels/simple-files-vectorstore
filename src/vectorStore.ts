@@ -1,4 +1,4 @@
-import { FaissStore } from "@langchain/community/vectorstores/faiss";
+import { HNSWLib } from "@langchain/community/vectorstores/hnswlib";
 import { Document } from "@langchain/core/documents";
 import { ProcessedDocument, SearchResult, StoreStats, SupportedFileType } from "./types.js";
 import { TransformersEmbeddings } from "./embeddings.js";
@@ -6,7 +6,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 
 export class VectorStore {
-  private store: FaissStore | null = null;
+  private store: HNSWLib | null = null;
   private embeddings: TransformersEmbeddings;
   private stats: StoreStats = {
     totalDocuments: 0,
@@ -47,7 +47,7 @@ export class VectorStore {
     );
 
     if (!this.store) {
-      this.store = await FaissStore.fromDocuments(documents, this.embeddings);
+      this.store = await HNSWLib.fromDocuments(documents, this.embeddings);
     } else {
       await this.store.addDocuments(documents);
     }
@@ -71,14 +71,14 @@ export class VectorStore {
     const documents = this.documentsBySource.get(source);
     if (!documents || !this.store) return;
 
-    // Get IDs of documents to remove
-    const ids = await this.store.similaritySearch(
-      documents[0].pageContent,
-      documents.length,
-      (doc: Document) => doc.metadata.source === source
-    );
-    const docIds = ids.map(doc => doc.id).filter((id): id is string => id !== undefined);
-    await this.store.delete({ ids: docIds });
+    // Since HNSWLib doesn't support selective deletion, we need to:
+    // 1. Get all documents except the ones we want to remove
+    // 2. Create a new store with those documents
+    const allDocs = Array.from(this.documentsBySource.values()).flat();
+    const remainingDocs = allDocs.filter(doc => doc.metadata.source !== source);
+    
+    // Create new store with remaining documents
+    this.store = await HNSWLib.fromDocuments(remainingDocs, this.embeddings);
 
     // Update stats
     this.stats.totalDocuments -= documents.length;
@@ -146,7 +146,7 @@ export class VectorStore {
 
   async load(directory: string): Promise<void> {
     try {
-      this.store = await FaissStore.load(directory, this.embeddings);
+      this.store = await HNSWLib.load(directory, this.embeddings);
       
       // Load stats
       const statsPath = path.join(directory, "stats.json");

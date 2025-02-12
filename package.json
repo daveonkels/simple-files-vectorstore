@@ -7,12 +7,13 @@
     "start": "node build/index.js"
   },
   "dependencies": {
-    "@langchain/community": "^0.3.28",
-    "@langchain/core": "^0.3.37",
+    "@langchain/community": "^0.3.30",
+    "@langchain/core": "^0.3.39",
     "@modelcontextprotocol/sdk": "^0.4.0",
     "@xenova/transformers": "^2.14.0",
     "cheerio": "^1.0.0",
     "faiss-node": "^0.5.1",
+    "hnswlib-node": "^3.0.0",
     "html-to-text": "^9.0.5"
   },
   "devDependencies": {
