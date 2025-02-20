@@ -84,7 +84,7 @@ class SimpleFilesVectorStore {
       tools: [
         {
           name: 'search',
-          description: 'Search across files using semantic search. Uses directories from WATCH_DIRECTORIES environment variable.',
+          description: 'Search local files using semantic search.',
           inputSchema: {
             type: 'object',
             properties: {
