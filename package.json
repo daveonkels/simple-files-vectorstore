@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "build": "tsc && chmod +x build/index.js",
-    "start": "node build/index.js"
+    "start": "node build/index.js",
+    "test": "vitest run --reporter=tap-flat",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:once": "vitest run"
   },
   "dependencies": {
     "@langchain/community": "^0.3.30",
@@ -17,6 +21,7 @@
   },
   "devDependencies": {
     "@types/html-to-text": "^9.0.4",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^3.0.6"
   }
 }

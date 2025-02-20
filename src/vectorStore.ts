@@ -1,6 +1,6 @@
 import { HNSWLib } from "@langchain/community/vectorstores/hnswlib";
 import { Document } from "@langchain/core/documents";
-import { ProcessedDocument, SearchResult, StoreStats, SupportedFileType } from "./types.js";
+import { ProcessedDocument, SearchResult, StoreStats } from "./types.js";
 import { TransformersEmbeddings } from "./embeddings.js";
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -10,12 +10,7 @@ export class VectorStore {
   private embeddings: TransformersEmbeddings;
   private stats: StoreStats = {
     totalDocuments: 0,
-    documentsByType: {
-      md: 0,
-      html: 0,
-      json: 0,
-      txt: 0,
-    },
+    documentsByType: {},
     watchedDirectories: [],
     filesBeingProcessed: 0
   };
@@ -63,7 +58,8 @@ export class VectorStore {
     // Update stats
     this.stats.totalDocuments += documents.length;
     for (const doc of docs) {
-      this.stats.documentsByType[doc.metadata.fileType]++;
+      const fileType = doc.metadata.fileType;
+      this.stats.documentsByType[fileType] = (this.stats.documentsByType[fileType] || 0) + 1;
     }
   }
 
@@ -82,8 +78,11 @@ export class VectorStore {
 
     // Update stats
     this.stats.totalDocuments -= documents.length;
-    const fileType = documents[0].metadata.fileType as SupportedFileType;
-    this.stats.documentsByType[fileType] -= documents.length;
+    const fileType = documents[0].metadata.fileType;
+    this.stats.documentsByType[fileType] = Math.max(0, (this.stats.documentsByType[fileType] || 0) - documents.length);
+    if (this.stats.documentsByType[fileType] === 0) {
+      delete this.stats.documentsByType[fileType];
+    }
 
     // Remove from tracking
     this.documentsBySource.delete(source);
@@ -120,7 +119,7 @@ export class VectorStore {
       content: doc.pageContent,
       metadata: doc.metadata as {
         source: string;
-        fileType: SupportedFileType;
+        fileType: string;
         lastModified: number;
         chunkIndex: number;
         totalChunks: number;

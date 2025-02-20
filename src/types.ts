@@ -1,5 +1,3 @@
-export type SupportedFileType = 'md' | 'html' | 'json' | 'txt';
-
 export interface ProcessedDocument {
   content: string;
   metadata: DocumentMetadata;
@@ -7,7 +5,7 @@ export interface ProcessedDocument {
 
 export interface DocumentMetadata {
   source: string;
-  fileType: SupportedFileType;
+  fileType: string;
   lastModified: number;
   chunkIndex?: number;
   totalChunks?: number;
@@ -27,7 +25,15 @@ export interface SearchResult {
 
 export interface StoreStats {
   totalDocuments: number;
-  documentsByType: Record<SupportedFileType, number>;
+  documentsByType: Record<string, number>;
   watchedDirectories: string[];
   filesBeingProcessed: number;
+}
+
+export abstract class BaseFileTypeProcessor {
+  abstract canProcess(filePath: string): boolean;
+  abstract process(content: string): Promise<string>;
+  getPriority(): number {
+    return 0;
+  }
 }

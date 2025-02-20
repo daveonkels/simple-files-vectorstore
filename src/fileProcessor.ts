@@ -1,111 +1,96 @@
-import { ProcessedDocument, SupportedFileType } from './types.js';
-import { convert, HtmlToTextOptions } from 'html-to-text';
-import * as cheerio from 'cheerio';
+import { ProcessedDocument } from './types.js';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { FileTypeProcessorRegistry } from './processors/index.js';
 
 export class FileProcessor {
   private textSplitter: RecursiveCharacterTextSplitter;
+  private processorRegistry: FileTypeProcessorRegistry;
 
   constructor(chunkSize: number = 1000, chunkOverlap: number = 200) {
     this.textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize,
       chunkOverlap,
     });
+    this.processorRegistry = FileTypeProcessorRegistry.getInstance();
   }
 
-  private getFileType(filePath: string): SupportedFileType {
+  private getFileType(filePath: string): string {
     const ext = path.extname(filePath).toLowerCase();
-    switch (ext) {
-      case '.md':
-        return 'md';
-      case '.html':
-        return 'html';
-      case '.json':
-        return 'json';
-      case '.txt':
-        return 'txt';
-      default:
-        throw new Error(`Unsupported file type: ${ext}`);
-    }
+    return ext ? ext.slice(1) : 'txt'; // Remove the dot from extension
   }
 
-  private async processHtml(content: string): Promise<string> {
-    const $ = cheerio.load(content);
-
-    // Remove script and style tags
-    $('script').remove();
-    $('style').remove();
-
-    const options: HtmlToTextOptions = {
-      wordwrap: false,
-      selectors: [
-        { selector: 'img', format: 'skip' },
-        { selector: 'a', options: { hideLinkHrefIfSameAsText: true } },
-      ],
-    };
-
-    return convert($.html(), options);
-  }
-
-  private async processJson(content: string): Promise<string> {
+  private async isTextFile(filePath: string): Promise<boolean> {
     try {
-      const parsed = JSON.parse(content);
-      return JSON.stringify(parsed, null, 2);
+      // Try to read the first few bytes of the file
+      const fd = await fs.open(filePath, 'r');
+      const buffer = Buffer.alloc(4096);
+      const { bytesRead } = await fd.read(buffer, 0, 4096, 0);
+      await fd.close();
+
+      if (bytesRead === 0) {
+        return true; // Empty files are considered text files
+      }
+
+      // Check if the buffer contains null bytes (common in binary files)
+      for (let i = 0; i < bytesRead; i++) {
+        if (buffer[i] === 0) {
+          return false;
+        }
+      }
+
+      // Try decoding as UTF-8
+      buffer.slice(0, bytesRead).toString('utf8');
+      return true;
     } catch (error) {
-      throw new Error('Invalid JSON content');
+      if (error instanceof Error && error.message.includes('ENOENT')) {
+        throw error; // Re-throw file not found errors
+      }
+      return false; // Other errors indicate non-text content
     }
-  }
-
-  private async processMarkdown(content: string): Promise<string> {
-    // For markdown, we'll keep it as is since it's already readable
-    return content;
-  }
-
-  private async processText(content: string): Promise<string> {
-    // For plain text, we'll keep it as is
-    return content;
   }
 
   async processFile(filePath: string): Promise<ProcessedDocument[]> {
-    const content = await fs.readFile(filePath, 'utf-8');
-    const fileType = this.getFileType(filePath);
-    const stats = await fs.stat(filePath);
+    try {
+      // First check if it's a text file
+      if (!await this.isTextFile(filePath)) {
+        return [];
+      }
 
-    let processedContent: string;
-    switch (fileType) {
-      case 'html':
-        processedContent = await this.processHtml(content);
-        break;
-      case 'json':
-        processedContent = await this.processJson(content);
-        break;
-      case 'md':
-        processedContent = await this.processMarkdown(content);
-        break;
-      case 'txt':
-        processedContent = await this.processText(content);
-        break;
-      default:
-        throw new Error(`Unsupported file type: ${fileType}`);
+      const content = await fs.readFile(filePath, 'utf-8');
+      const fileType = this.getFileType(filePath);
+      const stats = await fs.stat(filePath);
+
+      // Find appropriate processor
+      const processor = this.processorRegistry.findProcessor(filePath);
+      if (!processor) {
+        return []; // Skip if no processor is found
+      }
+
+      const processedContent = await processor.process(content);
+      const chunks = await this.textSplitter.createDocuments(
+        [processedContent],
+        [{ source: filePath }]
+      );
+
+      return chunks.map((chunk: { pageContent: string }, index: number) => ({
+        content: chunk.pageContent,
+        metadata: {
+          source: filePath,
+          fileType,
+          lastModified: stats.mtimeMs,
+          chunkIndex: index,
+          totalChunks: chunks.length,
+        },
+      }));
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('ENOENT')) {
+        throw error; // Re-throw file not found errors
+      }
+      console.error(`Error processing file ${filePath}:`, error);
+      return [];
     }
-
-    const chunks = await this.textSplitter.createDocuments(
-      [processedContent],
-      [{ source: filePath }]
-    );
-
-    return chunks.map((chunk: { pageContent: string }, index: number) => ({
-      content: chunk.pageContent,
-      metadata: {
-        source: filePath,
-        fileType,
-        lastModified: stats.mtimeMs,
-        chunkIndex: index,
-        totalChunks: chunks.length,
-      },
-    }));
   }
 
   async processDirectory(dirPath: string): Promise<ProcessedDocument[]> {
@@ -119,14 +104,10 @@ export class FileProcessor {
         documents.push(...subdirDocs);
       } else if (item.isFile()) {
         try {
-          const fileType = this.getFileType(fullPath);
           const docs = await this.processFile(fullPath);
           documents.push(...docs);
         } catch (error) {
-          // Skip unsupported file types
-          if (error instanceof Error && !error.message.startsWith('Unsupported file type')) {
-            throw error;
-          }
+          console.error(`Error processing ${fullPath}:`, error);
         }
       }
     }
