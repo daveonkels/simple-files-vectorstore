@@ -3,6 +3,7 @@ import { watch, FSWatcher } from 'fs';
 import * as path from 'path';
 import { FileProcessor } from './fileProcessor.js';
 import { ProcessedDocument } from './types.js';
+import { IgnorePatternMatcher } from './ignorePatternMatcher.js';
 
 type FileChangeCallback = (type: 'add' | 'change' | 'unlink', filePath: string) => Promise<void>;
 
@@ -12,10 +13,20 @@ export class FileWatcher {
   private processedPaths: Set<string> = new Set();
   private processingQueue: Set<string> = new Set();
   private onFileChange: FileChangeCallback;
+  private ignorePatternMatcher: IgnorePatternMatcher;
 
-  constructor(fileProcessor: FileProcessor, onFileChange: FileChangeCallback) {
+  constructor(
+    fileProcessor: FileProcessor,
+    onFileChange: FileChangeCallback,
+    ignoreFilePath: string | null = null
+  ) {
     this.fileProcessor = fileProcessor;
     this.onFileChange = onFileChange;
+    this.ignorePatternMatcher = new IgnorePatternMatcher(ignoreFilePath);
+  }
+
+  async initializeIgnorePatterns(): Promise<void> {
+    await this.ignorePatternMatcher.loadPatterns();
   }
 
   setupDirectoryWatch(dirPath: string): void {
@@ -40,6 +51,11 @@ export class FileWatcher {
     for (const item of items) {
       const fullPath = path.join(dirPath, item.name);
       
+      // Check if the item should be ignored
+      if (this.ignorePatternMatcher.shouldIgnore(fullPath, item.isDirectory())) {
+        continue;
+      }
+      
       if (item.isDirectory()) {
         await this.processExistingFiles(fullPath);
       } else if (item.isFile()) {
@@ -63,17 +79,23 @@ export class FileWatcher {
       async (eventType, filename) => {
         if (!filename) return;
 
-        const fullPath = path.join(dirPath, filename);
+          const fullPath = path.join(dirPath, filename);
 
-        try {
-          // Check if the file exists to determine if it was deleted
-          const exists = await fs.access(fullPath).then(() => true).catch(() => false);
-          
-          if (!exists) {
-            await this.handleFileChange('unlink', fullPath);
-          } else {
-            const stats = await fs.stat(fullPath);
-            if (stats.isFile()) {
+          try {
+            // Check if the file exists to determine if it was deleted
+            const exists = await fs.access(fullPath).then(() => true).catch(() => false);
+            
+            if (!exists) {
+              await this.handleFileChange('unlink', fullPath);
+            } else {
+              const stats = await fs.stat(fullPath);
+              
+              // Check if the file should be ignored
+              if (this.ignorePatternMatcher.shouldIgnore(fullPath, stats.isDirectory())) {
+                return;
+              }
+              
+              if (stats.isFile()) {
               await this.handleFileChange(eventType === 'rename' ? 'add' : 'change', fullPath);
             }
           }

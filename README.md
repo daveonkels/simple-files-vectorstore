@@ -57,7 +57,31 @@ The server requires configuration through environment variables:
 
 - `CHUNK_SIZE`: Size of text chunks for processing (default: 1000)
 - `CHUNK_OVERLAP`: Overlap between chunks (default: 200)
+- `IGNORE_FILE`: Path to a .gitignore style file to exclude files/directories based on patterns
 
+Example with all optional parameters:
+
+```json
+  {
+    "mcpServers": {
+      "files-vectorstore": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@lishenxydlgzs/simple-files-vectorstore"
+        ],
+        "env": {
+          "WATCH_DIRECTORIES": "/path/to/dir1,/path/to/dir2",
+          "CHUNK_SIZE": "2000",
+          "CHUNK_OVERLAP": "500",
+          "IGNORE_FILE": "/path/to/.gitignore"
+        },
+        "disabled": false,
+        "autoApprove": []
+      }
+    }
+  }
+  ```
 ## MCP Tools
 
 This server provides the following MCP tools:

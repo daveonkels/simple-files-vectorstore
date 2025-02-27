@@ -24,6 +24,7 @@ class SimpleFilesVectorStore {
   private fileProcessor: FileProcessor;
   private fileWatcher: FileWatcher;
   private defaultDirectories: string[] = [];
+  private ignoreFilePath: string | null = null;
 
   constructor() {
     this.vectorStore = new VectorStore();
@@ -34,13 +35,23 @@ class SimpleFilesVectorStore {
 
     // Check for directories in environment variables
     const envDirs = process.env.WATCH_DIRECTORIES;
+    
+    // Get ignore file path from environment variable
+    this.ignoreFilePath = process.env.IGNORE_FILE || null;
+    if (this.ignoreFilePath) {
+      console.error(`Using ignore file: ${this.ignoreFilePath}`);
+    }
     if (envDirs) {
       this.defaultDirectories = envDirs.split(',').map(dir => dir.trim());
       console.error(`Loaded default directories from WATCH_DIRECTORIES: ${this.defaultDirectories.join(', ')}`);
     }
 
-    // Initialize file watcher
-    this.fileWatcher = new FileWatcher(this.fileProcessor, this.handleFileChange.bind(this));
+    // Initialize file watcher with ignore file path
+    this.fileWatcher = new FileWatcher(
+      this.fileProcessor,
+      this.handleFileChange.bind(this),
+      this.ignoreFilePath
+    );
 
     this.server = new Server({
       name: 'simple-files-vectorstore',
@@ -186,6 +197,9 @@ class SimpleFilesVectorStore {
       if (this.defaultDirectories.length === 0) {
         throw new Error('No directories specified. Set WATCH_DIRECTORIES environment variable.');
       }
+
+      // Initialize ignore patterns
+      await this.fileWatcher.initializeIgnorePatterns();
 
       // Set up watchers first (non-blocking)
       for (const dir of this.defaultDirectories) {
