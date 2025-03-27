@@ -29,6 +29,10 @@ export class FileWatcher {
     await this.ignorePatternMatcher.loadPatterns();
   }
 
+  setWatchedDirectories(directories: string[]): void {
+    this.ignorePatternMatcher.setWatchedDirectories(directories);
+  }
+
   setupDirectoryWatch(dirPath: string): void {
     // Set up watchers without waiting for file processing
     this.setupWatcher(dirPath);

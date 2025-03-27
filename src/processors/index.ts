@@ -74,7 +74,9 @@ export class JSONProcessor extends BaseFileTypeProcessor {
       const parsed = JSON.parse(content);
       return JSON.stringify(parsed, null, 2);
     } catch (error) {
-      throw new Error('Invalid JSON content');
+      // If JSON parsing fails, fall back to processing as text
+      console.error(`Failed to parse JSON, falling back to text processing: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return content;
     }
   }
 }

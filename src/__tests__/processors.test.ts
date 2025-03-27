@@ -85,8 +85,41 @@ describe('JSONProcessor', () => {
     expect(result).toContain('\n'); // Should be formatted
   });
 
-  test('process throws error for invalid JSON', async () => {
-    await expect(processor.process('invalid json')).rejects.toThrow('Invalid JSON content');
+  test('process falls back to text for invalid JSON', async () => {
+    const invalidJson = 'invalid json';
+    const result = await processor.process(invalidJson);
+    expect(result).toBe(invalidJson);
+  });
+
+  test('process falls back to text for JSON with comments', async () => {
+    const jsonWithComments = `{
+      // This is a comment
+      "test": "value",
+      "nested": {
+        "array": [1, 2, 3] // Another comment
+      }
+    }`;
+    
+    const result = await processor.process(jsonWithComments);
+    expect(result).toBe(jsonWithComments);
+  });
+
+  test('process falls back to text for VS Code launch.json', async () => {
+    const launchJson = `{
+      // Use IntelliSense to learn about possible attributes.
+      // Hover to view descriptions of existing attributes.
+      "version": "0.3.0",
+      "configurations": [
+        {
+          "name": "Debug",
+          "type": "node",
+          "request": "launch"
+        }
+      ]
+    }`;
+    
+    const result = await processor.process(launchJson);
+    expect(result).toBe(launchJson);
   });
 });
 

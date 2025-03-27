@@ -201,6 +201,9 @@ class SimpleFilesVectorStore {
       // Initialize ignore patterns
       await this.fileWatcher.initializeIgnorePatterns();
 
+      // Set watched directories for ignore pattern matching
+      this.fileWatcher.setWatchedDirectories(this.defaultDirectories);
+
       // Set up watchers first (non-blocking)
       for (const dir of this.defaultDirectories) {
         this.fileWatcher.setupDirectoryWatch(dir);
