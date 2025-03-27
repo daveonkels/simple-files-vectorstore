@@ -30,8 +30,7 @@
     "test": "vitest run --reporter=tap-flat",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "test:once": "vitest run",
-    "publish": "npm run build && npm publish --access public"
+    "test:once": "vitest run"
   },
   "dependencies": {
     "@langchain/community": "^0.3.30",
