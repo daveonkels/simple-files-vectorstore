@@ -12,13 +12,15 @@ import { FileProcessor } from './fileProcessor.js';
 import { VectorStore } from './vectorStore.js';
 import { FileWatcher } from './fileWatcher.js';
 import * as path from 'path';
+import * as fs from 'fs/promises';
+import { WatchConfig } from './types.js';
 
 interface SearchArgs {
   query: string;
   limit?: number;
 }
 
-class SimpleFilesVectorStore {
+export class SimpleFilesVectorStore {
   private server: Server;
   private vectorStore: VectorStore;
   private fileProcessor: FileProcessor;
@@ -33,15 +35,25 @@ class SimpleFilesVectorStore {
     const chunkOverlap = process.env.CHUNK_OVERLAP ? parseInt(process.env.CHUNK_OVERLAP) : 200;
     this.fileProcessor = new FileProcessor(chunkSize, chunkOverlap);
 
-    // Check for directories in environment variables
-    const envDirs = process.env.WATCH_DIRECTORIES;
-    
     // Get ignore file path from environment variable
     this.ignoreFilePath = process.env.IGNORE_FILE || null;
     if (this.ignoreFilePath) {
       console.error(`Using ignore file: ${this.ignoreFilePath}`);
     }
-    if (envDirs) {
+
+    // Check for watch config file or directories in environment variables
+    const watchConfigFile = process.env.WATCH_CONFIG_FILE;
+    const envDirs = process.env.WATCH_DIRECTORIES;
+    
+    if (watchConfigFile && envDirs) {
+      console.error('Both WATCH_CONFIG_FILE and WATCH_DIRECTORIES are set. Using WATCH_CONFIG_FILE.');
+    }
+    
+    if (watchConfigFile) {
+      console.error(`Using watch config file: ${watchConfigFile}`);
+      // The actual loading of the config file will happen in the run method
+      // to allow for proper async handling and error management
+    } else if (envDirs) {
       this.defaultDirectories = envDirs.split(',').map(dir => dir.trim());
       console.error(`Loaded default directories from WATCH_DIRECTORIES: ${this.defaultDirectories.join(', ')}`);
     }
@@ -191,11 +203,42 @@ class SimpleFilesVectorStore {
     };
   }
 
+  private async loadWatchConfigFile(configFilePath: string): Promise<string[]> {
+    try {
+      const configContent = await fs.readFile(configFilePath, 'utf-8');
+      const config = JSON.parse(configContent) as WatchConfig;
+      
+      if (!config.watchList || !Array.isArray(config.watchList) || config.watchList.length === 0) {
+        throw new Error(`Invalid watch config file: ${configFilePath}. The 'watchList' field must be a non-empty array of strings.`);
+      }
+      
+      return config.watchList;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to load watch config file: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
   async run() {
     try {
+      // Check if we need to load directories from config file
+      const watchConfigFile = process.env.WATCH_CONFIG_FILE;
+      if (watchConfigFile) {
+        try {
+          const watchList = await this.loadWatchConfigFile(watchConfigFile);
+          this.defaultDirectories = watchList;
+          console.error(`Loaded watch list from config file: ${watchList.join(', ')}`);
+        } catch (error) {
+          console.error(error);
+          throw new Error(`Failed to load watch config file. ${error instanceof Error ? error.message : ''}`);
+        }
+      }
+      
       // Validate directories
       if (this.defaultDirectories.length === 0) {
-        throw new Error('No directories specified. Set WATCH_DIRECTORIES environment variable.');
+        throw new Error('No directories specified. Set either WATCH_DIRECTORIES environment variable or provide a WATCH_CONFIG_FILE.');
       }
 
       // Initialize ignore patterns

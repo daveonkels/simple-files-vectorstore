@@ -17,6 +17,10 @@ export interface VectorStoreConfig {
   watchDirs: string[];
 }
 
+export interface WatchConfig {
+  watchList: string[];
+}
+
 export interface SearchResult {
   content: string;
   metadata: DocumentMetadata;
