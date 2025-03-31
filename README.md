@@ -33,25 +33,61 @@ The server requires configuration through environment variables:
 
 ### Required Environment Variables
 
+You must specify directories to watch using ONE of the following methods:
+
 - `WATCH_DIRECTORIES`: Comma-separated list of directories to watch
-  ```json
-  {
-    "mcpServers": {
-      "files-vectorstore": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "@lishenxydlgzs/simple-files-vectorstore"
-        ],
-        "env": {
-          "WATCH_DIRECTORIES": "/path/to/dir1,/path/to/dir2"
-        },
-        "disabled": false,
-        "autoApprove": []
-      }
+- `WATCH_CONFIG_FILE`: Path to a JSON configuration file with a `watchList` array
+
+Example using WATCH_DIRECTORIES:
+```json
+{
+  "mcpServers": {
+    "files-vectorstore": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@lishenxydlgzs/simple-files-vectorstore"
+      ],
+      "env": {
+        "WATCH_DIRECTORIES": "/path/to/dir1,/path/to/dir2"
+      },
+      "disabled": false,
+      "autoApprove": []
     }
   }
-  ```
+}
+```
+
+Example using WATCH_CONFIG_FILE:
+```json
+{
+  "mcpServers": {
+    "files-vectorstore": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@lishenxydlgzs/simple-files-vectorstore"
+      ],
+      "env": {
+        "WATCH_CONFIG_FILE": "/path/to/watch-config.json"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+The watch config file should have the following structure:
+```json
+{
+  "watchList": [
+    "/path/to/dir1",
+    "/path/to/dir2",
+    "/path/to/specific/file.txt"
+  ]
+}
+```
 
 ### Optional Environment Variables
 
