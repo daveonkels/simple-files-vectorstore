@@ -2,6 +2,8 @@
 
 A Model Context Protocol (MCP) server that provides semantic search capabilities across files. This server watches specified directories and creates vector embeddings of file contents, enabling semantic search across your documents.
 
+**Enhanced Version** - This fork includes additional file processing capabilities for documents, PDFs, and images.
+
 ## Installation & Usage
 Add to your MCP settings file:
 ```json
@@ -10,8 +12,7 @@ Add to your MCP settings file:
     "files-vectorstore": {
       "command": "npx",
       "args": [
-        "-y",
-        "@lishenxydlgzs/simple-files-vectorstore"
+        "/path/to/simple-files-vectorstore/build/index.js"
       ],
       "env": {
         "WATCH_DIRECTORIES": "/path/to/your/directories"
@@ -26,6 +27,53 @@ Add to your MCP settings file:
 MCP settings file locations:
 - VSCode Cline Extension: `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
 - Claude Desktop App: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+## Enhanced File Processing
+
+This version supports automatic text extraction from multiple file types:
+
+### Document Formats (via Pandoc)
+- Word documents (`.docx`)
+- OpenDocument Text (`.odt`) 
+- EPUB files (`.epub`)
+- Rich Text Format (`.rtf`)
+- LaTeX documents (`.tex`)
+- reStructuredText (`.rst`)
+
+### PDF Documents
+- Text extraction from PDFs using `pdftotext`
+- Handles text-based PDFs efficiently
+
+### Images (via OCR)
+- JPEG/JPG (`.jpg`, `.jpeg`)
+- PNG (`.png`)
+- GIF (`.gif`)
+- BMP (`.bmp`)
+- TIFF (`.tiff`)
+- WebP (`.webp`)
+
+### Processing Order
+1. **Document files** → Convert with Pandoc
+2. **PDF files** → Extract text with pdftotext
+3. **Image files** → Extract text with Tesseract OCR
+4. **Text files** → Process directly (original behavior)
+
+## Dependencies
+
+To use the enhanced file processing features, install these dependencies:
+
+```bash
+# macOS
+brew install pandoc      # Document conversion
+brew install poppler     # PDF text extraction (pdftotext)
+brew install tesseract   # Image OCR
+
+# Ubuntu/Debian
+sudo apt-get install pandoc poppler-utils tesseract-ocr
+
+# Windows (via Chocolatey)
+choco install pandoc poppler tesseract
+```
 
 ## Configuration
 
@@ -45,8 +93,7 @@ Example using WATCH_DIRECTORIES:
     "files-vectorstore": {
       "command": "npx",
       "args": [
-        "-y",
-        "@lishenxydlgzs/simple-files-vectorstore"
+        "/path/to/simple-files-vectorstore/build/index.js"
       ],
       "env": {
         "WATCH_DIRECTORIES": "/path/to/dir1,/path/to/dir2"
@@ -58,18 +105,29 @@ Example using WATCH_DIRECTORIES:
 }
 ```
 
-Example using WATCH_CONFIG_FILE:
+### Optional Environment Variables
+
+- `CHUNK_SIZE`: Size of text chunks for processing (default: 1000)
+- `CHUNK_OVERLAP`: Overlap between chunks (default: 200)
+- `IGNORE_FILE`: Path to a .gitignore style file to exclude files/directories based on patterns
+- `INGESTION_LOG_PATH`: Path to ingestion log file (default: `/Users/onk/Documents/Vector/.ingestionlog`)
+
+Example with all optional parameters:
+
 ```json
 {
   "mcpServers": {
     "files-vectorstore": {
       "command": "npx",
       "args": [
-        "-y",
-        "@lishenxydlgzs/simple-files-vectorstore"
+        "/path/to/simple-files-vectorstore/build/index.js"
       ],
       "env": {
-        "WATCH_CONFIG_FILE": "/path/to/watch-config.json"
+        "WATCH_DIRECTORIES": "/path/to/dir1,/path/to/dir2",
+        "CHUNK_SIZE": "2000",
+        "CHUNK_OVERLAP": "500",
+        "IGNORE_FILE": "/path/to/.gitignore",
+        "INGESTION_LOG_PATH": "/custom/path/to/ingestion.log"
       },
       "disabled": false,
       "autoApprove": []
@@ -78,46 +136,29 @@ Example using WATCH_CONFIG_FILE:
 }
 ```
 
-The watch config file should have the following structure:
-```json
-{
-  "watchList": [
-    "/path/to/dir1",
-    "/path/to/dir2",
-    "/path/to/specific/file.txt"
-  ]
-}
+## Ingestion Logging
+
+The server maintains a detailed log of all file processing activities:
+
+### Log Format
+```
+2025-09-01T23:47:00.000Z | ADD | SUCCESS | /path/to/file.pdf
+2025-09-01T23:47:05.000Z | ADD | FAILED | /path/to/image.jpg | OCR extraction failed
+2025-09-01T23:47:10.000Z | REMOVE | SUCCESS | /path/to/deleted.txt
 ```
 
-### Optional Environment Variables
+### Log Entry Types
+- **ADD SUCCESS**: File successfully processed and indexed
+- **ADD FAILED**: File processing failed (with reason)
+- **REMOVE SUCCESS**: File successfully removed from index
 
-- `CHUNK_SIZE`: Size of text chunks for processing (default: 1000)
-- `CHUNK_OVERLAP`: Overlap between chunks (default: 200)
-- `IGNORE_FILE`: Path to a .gitignore style file to exclude files/directories based on patterns
+Common failure reasons:
+- `Pandoc conversion failed`
+- `PDF extraction failed`
+- `OCR extraction failed`
+- `Not a text file`
+- `No processor found`
 
-Example with all optional parameters:
-
-```json
-  {
-    "mcpServers": {
-      "files-vectorstore": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "@lishenxydlgzs/simple-files-vectorstore"
-        ],
-        "env": {
-          "WATCH_DIRECTORIES": "/path/to/dir1,/path/to/dir2",
-          "CHUNK_SIZE": "2000",
-          "CHUNK_OVERLAP": "500",
-          "IGNORE_FILE": "/path/to/.gitignore"
-        },
-        "disabled": false,
-        "autoApprove": []
-      }
-    }
-  }
-  ```
 ## MCP Tools
 
 This server provides the following MCP tools:
@@ -136,7 +177,7 @@ Example response:
   {
     "content": "matched text content",
     "source": "/path/to/file",
-    "fileType": "markdown",
+    "fileType": "txt",
     "score": 0.85
   }
 ]
@@ -159,13 +200,24 @@ Example response:
 
 ## Features
 
-- Real-time file watching and indexing
-- Semantic search using vector embeddings
-- Support for multiple file types
-- Configurable chunk size and overlap
-- Background processing of files
-- Automatic handling of file changes and deletions
+- **Enhanced file support**: Documents, PDFs, and images via OCR
+- **Real-time file watching** and indexing
+- **Semantic search** using vector embeddings
+- **Comprehensive logging** of all ingestion activities
+- **Configurable processing** with environment variables
+- **Background processing** of files
+- **Automatic handling** of file changes and deletions
+- **Flexible configuration** via environment variables
+
+## Building from Source
+
+```bash
+npm install
+npm run build
+```
+
+The built files will be in the `build/` directory.
 
 ## Repository
 
-[GitHub Repository](https://github.com/lishenxydlgzs/simple-files-vectorstore)
+[Original Repository](https://github.com/lishenxydlgzs/simple-files-vectorstore)
