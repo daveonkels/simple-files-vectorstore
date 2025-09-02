@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2025-09-02
+
+### Added
+- **Enhanced File Processing**: Support for multiple file types beyond plain text
+  - Pandoc integration for document conversion (.docx, .odt, .epub, .rtf, .tex, .rst)
+  - PDF text extraction using `pdftotext` command
+  - OCR support for images using Tesseract (.jpg, .jpeg, .png, .gif, .bmp, .tiff, .webp)
+- **Ingestion Logging**: Comprehensive logging system for file processing activities
+  - Configurable log path via `INGESTION_LOG_PATH` environment variable
+  - Detailed success/failure tracking with timestamps and error messages
+  - Logging for both file additions and removals
+- **File Type Detection**: Automatic file type detection and appropriate processor selection
+- **Error Handling**: Enhanced error handling with specific failure reasons logged
+
+### Changed
+- **File Processing Logic**: Completely rewritten `processFile()` method to handle multiple file types
+- **Preprocessing Pipeline**: Files now bypass `isTextFile()` check when using specialized processors
+- **File Type Assignment**: Processed files get normalized to 'txt' type after successful conversion
+
 ## [0.1.7] - 2025-03-31
 
 ### Added
