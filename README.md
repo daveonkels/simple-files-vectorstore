@@ -1,4 +1,6 @@
-# @lishenxydlgzs/simple-files-vectorstore
+# @daveonkels/simple-files-vectorstore
+
+_Forked from @lishenxydlgzs_
 
 A Model Context Protocol (MCP) server that provides semantic search capabilities across files. This server watches specified directories and creates vector embeddings of file contents, enabling semantic search across your documents.
 
