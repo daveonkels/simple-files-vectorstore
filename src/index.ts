@@ -85,6 +85,7 @@ export class SimpleFilesVectorStore {
     try {
       if (type === 'unlink') {
         await this.vectorStore.removeDocumentsBySource(filePath);
+        await this.fileProcessor.logIngestion(filePath, 'REMOVE');
       } else {
         this.vectorStore.incrementProcessingCount(filePath);
         try {
