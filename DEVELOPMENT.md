@@ -1,18 +1,27 @@
-## Quick Start for Cline
-0. Have the path to your directories to watch and index ready, for example `/path/to/your/files`
+# Development Guide
 
-1. Clone the git repo:
+## Quick Setup
 
+1. Clone the repository:
 ```bash
-git clone https://github.com/lishenxydlgzs/simple-files-vectorstore.git && cd simple-files-vectorstore
+git clone https://github.com/daveonkels/simple-files-vectorstore.git
+cd simple-files-vectorstore
 ```
 
-2. Build the server:
+2. Install dependencies and build:
 ```bash
-npm install && npm run build
+npm install
+npm run build
 ```
 
-3. Add the following to your Cline MCP settings file (`~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`):
+3. Configure for your MCP client (see sections below)
+
+## MCP Client Configuration
+
+### Claude Code (VSCode Extension)
+
+Add to your Cline MCP settings file:
+`~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
 
 ```json
 {
@@ -21,7 +30,7 @@ npm install && npm run build
       "command": "node",
       "args": ["/path/to/simple-files-vectorstore/build/index.js"],
       "env": {
-        "WATCH_DIRECTORIES": "/path/to/your/files"
+        "WATCH_DIRECTORIES": "/path/to/your/directories"
       },
       "disabled": false,
       "autoApprove": []
@@ -30,35 +39,150 @@ npm install && npm run build
 }
 ```
 
-Once configured, Cline will have access to two new tools:
+### Claude Desktop App
 
-```typescript
-// Search your files
-use_mcp_tool('files-vectorstore', 'search', {
-  query: "What's the architecture of our system?",
-  limit: 5
-});
+Add to your Claude Desktop configuration file:
+`~/Library/Application Support/Claude/claude_desktop_config.json`
 
-// Get indexing statistics
-use_mcp_tool('files-vectorstore', 'get_stats', {});
+```json
+{
+  "mcpServers": {
+    "files-vectorstore": {
+      "command": "npx",
+      "args": [
+        "/path/to/simple-files-vectorstore/build/index.js"
+      ],
+      "env": {
+        "WATCH_DIRECTORIES": "/path/to/your/directories"
+      }
+    }
+  }
+}
 ```
 
-The server will automatically index text files in your watched directories and keep the index updated as files change.
+### Cursor IDE
 
-## File Type Support
+Add to your Cursor MCP settings file:
+`~/Library/Application Support/Cursor/User/globalStorage/anysphere.cursor/settings/cline_mcp_settings.json`
 
-The system can process any text-based file while safely skipping binary files. It includes specialized processors for:
+```json
+{
+  "mcpServers": {
+    "files-vectorstore": {
+      "command": "node",
+      "args": ["/path/to/simple-files-vectorstore/build/index.js"],
+      "env": {
+        "WATCH_DIRECTORIES": "/path/to/your/directories"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
 
-- HTML (.html): Strips script and style tags, converts to plain text while preserving important content structure
-- JSON (.json): Pretty prints for readability
-- Markdown (.md): Processed as-is since they're already readable
-- Other text files: Processed as plain text
+## Available Tools
 
-Binary files (containing null bytes) are automatically detected and skipped.
+Once configured, you'll have access to these MCP tools:
 
-### Adding New File Type Processors
+### 1. search
+Perform semantic search across indexed files:
+```javascript
+// Basic search
+search({query: "architecture documentation"})
 
-The system uses an extensible processor architecture. You can add support for new file types by implementing the `BaseFileTypeProcessor` interface:
+// Limited results
+search({query: "API endpoints", limit: 10})
+
+// Folder-scoped search
+search({query: "infrastructure", folder: "docs"})
+```
+
+### 2. get_stats
+Get indexing statistics:
+```javascript
+get_stats({})
+```
+
+The server automatically indexes files in your watched directories and keeps the index updated as files change.
+
+## Enhanced File Processing
+
+This version supports automatic text extraction from multiple file types:
+
+### Document Formats (via Pandoc)
+- Word documents (`.docx`)
+- OpenDocument Text (`.odt`)
+- EPUB files (`.epub`)
+- Rich Text Format (`.rtf`)
+- LaTeX documents (`.tex`)
+- reStructuredText (`.rst`)
+
+### PDF Documents
+- Text extraction using `pdftotext`
+- Handles text-based PDFs efficiently
+
+### Images (via OCR)
+- JPEG/JPG, PNG, GIF, BMP, TIFF, WebP
+- Uses Tesseract OCR for text extraction
+
+### Text Files
+- HTML: Strips tags, preserves content structure
+- JSON: Pretty printed for readability
+- Markdown: Processed as-is
+- Plain text: Direct processing
+
+## Configuration Options
+
+### Environment Variables
+
+**Required (choose one):**
+- `WATCH_DIRECTORIES`: Comma-separated list of directories
+- `WATCH_CONFIG_FILE`: Path to JSON config file with `watchList` array
+
+**Optional:**
+- `CHUNK_SIZE`: Text chunk size (default: 1000)
+- `CHUNK_OVERLAP`: Chunk overlap (default: 200)
+- `IGNORE_FILE`: Path to .gitignore-style file
+- `INGESTION_LOG_PATH`: Custom log file path
+
+### Dependencies
+
+For enhanced file processing, install:
+
+```bash
+# macOS
+brew install pandoc poppler tesseract
+
+# Ubuntu/Debian
+sudo apt-get install pandoc poppler-utils tesseract-ocr
+
+# Windows (Chocolatey)
+choco install pandoc poppler tesseract
+```
+
+## Development
+
+### Testing
+```bash
+npm test              # Run tests
+npm run test:watch    # Watch mode
+npm run test:coverage # Coverage report
+```
+
+### Building
+```bash
+npm run build         # Build TypeScript
+```
+
+### Publishing
+```bash
+npm run release       # Build and publish
+```
+
+## Architecture
+
+The system uses an extensible processor architecture. Add new file type support by implementing `BaseFileTypeProcessor`:
 
 ```typescript
 abstract class BaseFileTypeProcessor {
