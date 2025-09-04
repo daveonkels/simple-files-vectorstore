@@ -18,6 +18,7 @@ import { WatchConfig } from './types.js';
 interface SearchArgs {
   query: string;
   limit?: number;
+  folder?: string;
 }
 
 export class SimpleFilesVectorStore {
@@ -122,6 +123,10 @@ export class SimpleFilesVectorStore {
                 minimum: 1,
                 maximum: 20,
               },
+              folder: {
+                type: 'string',
+                description: 'Optional folder path to limit search scope',
+              },
             },
             required: ['query'],
           },
@@ -147,6 +152,7 @@ export class SimpleFilesVectorStore {
           const searchArgs: SearchArgs = {
             query: request.params.arguments.query,
             limit: typeof request.params.arguments.limit === 'number' ? request.params.arguments.limit : undefined,
+            folder: typeof request.params.arguments.folder === 'string' ? request.params.arguments.folder : undefined,
           };
           return this.handleSearch(searchArgs);
         case 'get_stats':
@@ -162,18 +168,23 @@ export class SimpleFilesVectorStore {
 
   private async handleSearch(args: SearchArgs) {
     try {
-      // Return whatever results are available
+      // Get initial results
       const results = await this.vectorStore.similaritySearch(
         args.query,
         args.limit || 5
       );
+
+      // Filter by folder if specified
+      const filteredResults = args.folder 
+        ? results.filter(result => result.metadata.source.includes(args.folder!))
+        : results;
 
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
-              results.map((result) => ({
+              filteredResults.map((result) => ({
                 content: result.content,
                 source: result.metadata.source,
                 fileType: result.metadata.fileType,

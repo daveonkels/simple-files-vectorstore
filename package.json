@@ -1,6 +1,6 @@
 {
-  "name": "@lishenxydlgzs/simple-files-vectorstore",
-  "version": "0.1.7",
+  "name": "@daveonkels/simple-files-vectorstore",
+  "version": "0.1.9",
   "type": "module",
   "bin": {
     "simple-files-vectorstore": "./build/index.js"
@@ -22,7 +22,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/lishenxydlgzs/simple-files-vectorstore"
+    "url": "https://github.com/daveonkels/simple-files-vectorstore"
   },
   "scripts": {
     "build": "tsc && chmod +x build/index.js",

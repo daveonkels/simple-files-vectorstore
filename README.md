@@ -172,6 +172,16 @@ Perform semantic search across indexed files.
 Parameters:
 - `query` (required): The search query string
 - `limit` (optional): Maximum number of results to return (default: 5, max: 20)
+- `folder` (optional): Folder path to limit search scope
+
+Example usage:
+```javascript
+// Search all files
+search({query: "infrastructure documentation"})
+
+// Search within specific folder
+search({query: "One Medical infrastructure", folder: "General"})
+```
 
 Example response:
 ```json
@@ -205,6 +215,7 @@ Example response:
 - **Enhanced file support**: Documents, PDFs, and images via OCR
 - **Real-time file watching** and indexing
 - **Semantic search** using vector embeddings
+- **Folder-scoped search**: Limit searches to specific directories
 - **Comprehensive logging** of all ingestion activities
 - **Configurable processing** with environment variables
 - **Background processing** of files

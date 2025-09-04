@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2025-01-27
+
+### Added
+- **Folder-Scoped Search**: New optional `folder` parameter for the search tool
+  - Enables searching within specific directories or folder paths
+  - Usage: `search({query: "infrastructure", folder: "General"})`
+  - Filters results by checking if file source path contains the specified folder string
+
+### Changed
+- **Package Configuration**: Updated package name and repository to `@daveonkels/simple-files-vectorstore`
+- **Search Interface**: Enhanced `SearchArgs` interface to include optional `folder` parameter
+- **Tool Schema**: Updated search tool input schema to document the new folder parameter
+
 ## [0.1.8] - 2025-09-02
 
 ### Added
