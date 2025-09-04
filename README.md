@@ -180,7 +180,7 @@ Example usage:
 search({query: "infrastructure documentation"})
 
 // Search within specific folder
-search({query: "One Medical infrastructure", folder: "General"})
+search({query: "infrastructure", folder: "General"})
 ```
 
 Example response:
