@@ -21,6 +21,13 @@ interface SearchArgs {
   folder?: string;
 }
 
+interface SearchByDateArgs {
+  after?: string;
+  before?: string;
+  query?: string;
+  limit?: number;
+}
+
 export class SimpleFilesVectorStore {
   private server: Server;
   private vectorStore: VectorStore;
@@ -132,6 +139,34 @@ export class SimpleFilesVectorStore {
           },
         },
         {
+          name: 'search_by_date',
+          description: 'Search files by modification date with optional semantic search.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              after: {
+                type: 'string',
+                description: 'ISO date string - files modified after this date (e.g., "2024-01-01")',
+              },
+              before: {
+                type: 'string',
+                description: 'ISO date string - files modified before this date (e.g., "2024-12-31")',
+              },
+              query: {
+                type: 'string',
+                description: 'Optional search query to combine with date filtering',
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of results to return (default: 5)',
+                minimum: 1,
+                maximum: 20,
+              },
+            },
+            required: [],
+          },
+        },
+        {
           name: 'get_stats',
           description: 'Get statistics about indexed files',
           inputSchema: {
@@ -155,6 +190,14 @@ export class SimpleFilesVectorStore {
             folder: typeof request.params.arguments.folder === 'string' ? request.params.arguments.folder : undefined,
           };
           return this.handleSearch(searchArgs);
+        case 'search_by_date':
+          const searchByDateArgs: SearchByDateArgs = {
+            after: typeof request.params.arguments?.after === 'string' ? request.params.arguments.after : undefined,
+            before: typeof request.params.arguments?.before === 'string' ? request.params.arguments.before : undefined,
+            query: typeof request.params.arguments?.query === 'string' ? request.params.arguments.query : undefined,
+            limit: typeof request.params.arguments?.limit === 'number' ? request.params.arguments.limit : undefined,
+          };
+          return this.handleSearchByDate(searchByDateArgs);
         case 'get_stats':
           return this.handleGetStats();
         default:
@@ -189,6 +232,8 @@ export class SimpleFilesVectorStore {
                 source: result.metadata.source,
                 fileType: result.metadata.fileType,
                 score: result.score,
+                lastModified: result.metadata.lastModified,
+                lastModifiedDate: new Date(result.metadata.lastModified).toISOString(),
               })),
               null,
               2
@@ -200,6 +245,64 @@ export class SimpleFilesVectorStore {
       throw new McpError(
         ErrorCode.InternalError,
         `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  private async handleSearchByDate(args: SearchByDateArgs) {
+    try {
+      // Parse date filters
+      const afterTimestamp = args.after ? new Date(args.after).getTime() : null;
+      const beforeTimestamp = args.before ? new Date(args.before).getTime() : null;
+
+      // Validate dates
+      if (args.after && isNaN(afterTimestamp!)) {
+        throw new McpError(ErrorCode.InvalidParams, `Invalid 'after' date: ${args.after}`);
+      }
+      if (args.before && isNaN(beforeTimestamp!)) {
+        throw new McpError(ErrorCode.InvalidParams, `Invalid 'before' date: ${args.before}`);
+      }
+
+      // Get results (with or without semantic search)
+      const results = args.query 
+        ? await this.vectorStore.similaritySearch(args.query, args.limit || 20)
+        : await this.vectorStore.getAllDocuments(args.limit || 20);
+
+      // Filter by date
+      const filteredResults = results.filter(result => {
+        const fileTimestamp = result.metadata.lastModified;
+        if (afterTimestamp && fileTimestamp <= afterTimestamp) return false;
+        if (beforeTimestamp && fileTimestamp >= beforeTimestamp) return false;
+        return true;
+      });
+
+      // Limit results
+      const limitedResults = filteredResults.slice(0, args.limit || 5);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              limitedResults.map((result) => ({
+                content: result.content,
+                source: result.metadata.source,
+                fileType: result.metadata.fileType,
+                score: result.score,
+                lastModified: result.metadata.lastModified,
+                lastModifiedDate: new Date(result.metadata.lastModified).toISOString(),
+              })),
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      if (error instanceof McpError) throw error;
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Date search failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }

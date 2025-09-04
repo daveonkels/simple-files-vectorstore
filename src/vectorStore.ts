@@ -128,6 +128,25 @@ export class VectorStore {
     }));
   }
 
+  async getAllDocuments(limit: number = 20): Promise<SearchResult[]> {
+    if (!this.store) {
+      throw new Error("Vector store not initialized");
+    }
+
+    const allDocs = Array.from(this.documentsBySource.values()).flat();
+    return allDocs.slice(0, limit).map(doc => ({
+      content: doc.pageContent,
+      metadata: doc.metadata as {
+        source: string;
+        fileType: string;
+        lastModified: number;
+        chunkIndex: number;
+        totalChunks: number;
+      },
+      score: 1.0,
+    }));
+  }
+
   async save(directory: string): Promise<void> {
     if (!this.store) {
       throw new Error("Vector store not initialized");

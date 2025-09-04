@@ -98,11 +98,32 @@ search({query: "API endpoints", limit: 10})
 search({query: "infrastructure", folder: "docs"})
 ```
 
-### 2. get_stats
+### 2. search_by_date
+Search files by modification date with optional semantic search:
+```javascript
+// Files modified after a date
+search_by_date({after: "2024-01-01"})
+
+// Files in date range
+search_by_date({after: "2024-01-01", before: "2024-02-01"})
+
+// Combine date filtering with semantic search
+search_by_date({after: "2024-01-01", query: "documentation"})
+```
+
+### 3. get_stats
 Get indexing statistics:
 ```javascript
 get_stats({})
 ```
+
+## Timestamp Metadata
+
+All search results now include queryable timestamp information:
+- `lastModified`: Unix timestamp (milliseconds)
+- `lastModifiedDate`: ISO 8601 formatted date string
+
+This enables temporal analysis and date-based filtering of your document corpus.
 
 The server automatically indexes files in your watched directories and keeps the index updated as files change.
 

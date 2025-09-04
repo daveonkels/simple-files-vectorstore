@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] - 2025-01-27
+
+### Added
+- **Timestamp Metadata**: Enhanced search results with queryable timestamp information
+  - All search results now include `lastModified` (Unix timestamp) and `lastModifiedDate` (ISO string)
+  - Enables temporal analysis of document modifications
+- **Date-Based Search**: New `search_by_date` MCP tool for temporal queries
+  - Filter files by modification date with `after` and `before` parameters
+  - Combine date filtering with semantic search using optional `query` parameter
+  - Usage: `search_by_date({after: "2024-01-01", query: "documentation"})`
+- **Document Retrieval**: New `getAllDocuments` method in VectorStore for non-semantic queries
+
+### Changed
+- **Search Response Format**: Enhanced to include timestamp metadata in structured format
+- **Tool Collection**: Added `search_by_date` as third MCP tool alongside `search` and `get_stats`
+
 ## [0.1.9] - 2025-01-27
 
 ### Added

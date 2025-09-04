@@ -190,12 +190,36 @@ Example response:
     "content": "matched text content",
     "source": "/path/to/file",
     "fileType": "txt",
-    "score": 0.85
+    "score": 0.85,
+    "lastModified": 1706123456789,
+    "lastModifiedDate": "2024-01-24T12:34:56.789Z"
   }
 ]
 ```
 
-### 2. get_stats
+### 2. search_by_date
+
+Search files by modification date with optional semantic search.
+
+Parameters:
+- `after` (optional): ISO date string - files modified after this date
+- `before` (optional): ISO date string - files modified before this date
+- `query` (optional): Search query to combine with date filtering
+- `limit` (optional): Maximum number of results to return (default: 5, max: 20)
+
+Example usage:
+```javascript
+// Files modified after a specific date
+search_by_date({after: "2024-01-01"})
+
+// Files modified in a date range
+search_by_date({after: "2024-01-01", before: "2024-02-01"})
+
+// Combine date filtering with semantic search
+search_by_date({after: "2024-01-01", query: "documentation"})
+```
+
+### 3. get_stats
 
 Get statistics about indexed files.
 
