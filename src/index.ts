@@ -356,6 +356,9 @@ export class SimpleFilesVectorStore {
         throw new Error('No directories specified. Set either WATCH_DIRECTORIES environment variable or provide a WATCH_CONFIG_FILE.');
       }
 
+      // Initialize vector store persistence
+      await this.vectorStore.initialize();
+
       // Initialize ignore patterns
       await this.fileWatcher.initializeIgnorePatterns();
 

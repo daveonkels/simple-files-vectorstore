@@ -113,6 +113,7 @@ Example using WATCH_DIRECTORIES:
 - `CHUNK_OVERLAP`: Overlap between chunks (default: 200)
 - `IGNORE_FILE`: Path to a .gitignore style file to exclude files/directories based on patterns
 - `INGESTION_LOG_PATH`: Path to ingestion log file (default: `/Users/onk/Documents/Vector/.ingestionlog`)
+- `VECTOR_STORE_PATH`: Directory for persistent vector storage (default: `~/.simple-files-vectorstore`)
 
 Example with all optional parameters:
 
@@ -240,6 +241,7 @@ Example response:
 - **Real-time file watching** and indexing
 - **Semantic search** using vector embeddings
 - **Folder-scoped search**: Limit searches to specific directories
+- **Persistent vector storage**: Eliminates re-ingestion on restart
 - **Comprehensive logging** of all ingestion activities
 - **Configurable processing** with environment variables
 - **Background processing** of files

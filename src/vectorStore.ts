@@ -4,6 +4,7 @@ import { ProcessedDocument, SearchResult, StoreStats } from "./types.js";
 import { TransformersEmbeddings } from "./embeddings.js";
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as os from 'os';
 
 export class VectorStore {
   private store: HNSWLib | null = null;
@@ -14,9 +15,13 @@ export class VectorStore {
     watchedDirectories: [],
     filesBeingProcessed: 0
   };
+  private persistenceDir: string;
+  private saveTimer: NodeJS.Timeout | null = null;
+  private readonly SAVE_DELAY = 5000; // 5 seconds
 
   constructor() {
     this.embeddings = new TransformersEmbeddings();
+    this.persistenceDir = process.env.VECTOR_STORE_PATH || path.join(os.homedir(), '.simple-files-vectorstore');
   }
 
   private documentsBySource: Map<string, Document[]> = new Map();
@@ -61,6 +66,9 @@ export class VectorStore {
       const fileType = doc.metadata.fileType;
       this.stats.documentsByType[fileType] = (this.stats.documentsByType[fileType] || 0) + 1;
     }
+
+    // Schedule save
+    this.scheduleSave();
   }
 
   async removeDocumentsBySource(source: string): Promise<void> {
@@ -86,6 +94,9 @@ export class VectorStore {
 
     // Remove from tracking
     this.documentsBySource.delete(source);
+
+    // Schedule save
+    this.scheduleSave();
   }
 
   async updateDocuments(docs: ProcessedDocument[]): Promise<void> {
@@ -107,6 +118,9 @@ export class VectorStore {
       // Add new documents
       await this.addDocuments(sourceDocs);
     }
+
+    // Schedule save
+    this.scheduleSave();
   }
 
   async similaritySearch(query: string, limit: number = 5): Promise<SearchResult[]> {
@@ -181,6 +195,31 @@ export class VectorStore {
 
   getStats(): StoreStats {
     return { ...this.stats };
+  }
+
+  async initialize(): Promise<void> {
+    try {
+      await this.load(this.persistenceDir);
+      console.error('Loaded existing vector store from', this.persistenceDir);
+    } catch {
+      console.error('Starting with fresh vector store');
+    }
+  }
+
+  private scheduleSave(): void {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    
+    this.saveTimer = setTimeout(async () => {
+      try {
+        if (this.store) {
+          await this.save(this.persistenceDir);
+          console.error('Vector store saved to', this.persistenceDir);
+        }
+      } catch (error) {
+        console.error('Failed to save vector store:', error);
+      }
+      this.saveTimer = null;
+    }, this.SAVE_DELAY);
   }
 
   setWatchedDirectories(directories: string[]): void {

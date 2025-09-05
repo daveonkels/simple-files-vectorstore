@@ -1,6 +1,6 @@
 {
   "name": "@daveonkels/simple-files-vectorstore",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "type": "module",
   "bin": {
     "simple-files-vectorstore": "./build/index.js"
