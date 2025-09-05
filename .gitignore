@@ -10,6 +10,7 @@ coverage/
 
 # System files
 .DS_Store
+**/.DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
@@ -45,6 +46,14 @@ pids
 
 # Optional eslint cache
 .eslintcache
+
+# Vector store persistence files (HNSWLib creates these)
+*.hnswlib
+*.dat
+*.bin
+args.json
+stats.json
+docstore.json
 
 # Environment variables
 .env
